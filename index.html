@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABI S4 Görev Takibi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #f5a623; --bg: #0a0b0c; --card-bg: #141618; --text: #e0e0e0; --accent: #2ecc71; --border: #2c2f33; --highlight: #ff4d4d; --tier-6: #ff4d4d; --tier-5: #9b59b6; --tier-4: #3498db; --tier-3: #f1c40f; }
+        html { overflow-y: scroll; scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 15px; line-height: 1.5; user-select: none; -webkit-user-select: none; }
+        .container { max-width: 750px; margin: 0 auto; }
+        .main-nav { display: flex; gap: 8px; margin-bottom: 20px; justify-content: flex-start; }
+        .nav-btn { background: var(--card-bg); border: 1px solid var(--border); color: #888; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s; }
+        .nav-btn.active { background: var(--primary); color: #000; border-color: var(--primary); }
+
+        .search-row { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
+        #taskSearch { flex: 1; background: #000; border: 1px solid var(--border); border-radius: 6px; padding: 12px 15px; color: var(--primary); font-family: 'Inter', sans-serif; font-size: 0.85rem; outline: none; transition: border-color 0.3s; }
+        #taskSearch:focus { border-color: var(--primary); }
+        .toggle-box { display: flex; align-items: center; gap: 8px; font-size: 0.65rem; color: #666; font-weight: 800; white-space: nowrap; cursor: pointer; }
+        #hideDone { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+
+        /* ÖNERİ PANELİ STİLİ */
+        .ai-suggestion { background: rgba(245, 166, 35, 0.07); border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: 8px; padding: 15px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 12px; font-size: 0.85rem; animation: fadeIn 0.5s ease; }
+        .ai-icon { font-size: 1.4rem; filter: drop-shadow(0 0 5px var(--primary)); }
+        .ai-text { color: #bbb; line-height: 1.4; }
+        .ai-text strong { color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
+        .ai-next-tasks { display: block; margin-top: 5px; font-size: 0.75rem; color: #666; font-style: italic; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .progress-bg { width: 100%; height: 18px; background: #222; border-radius: 9px; overflow: hidden; position: relative; border: 1px solid #1a1a1a; }
+        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.4s ease; }
+        .progress-percent { position: absolute; width: 100%; text-align: center; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65rem; font-weight: 800; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); pointer-events: none; }
+
+        /* BALİSTİK PANEL VE İSTİHBARAT NOTU */
+        #ballistics-panel { display: none; background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 15px; animation: fadeIn 0.5s ease; }
+        .intel-note { background: rgba(245, 166, 35, 0.04); border: 1px dashed var(--primary); padding: 12px; border-radius: 6px; font-size: 0.75rem; margin-bottom: 15px; color: var(--primary); line-height: 1.4; }
+        .ammo-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; }
+        .ammo-table th { padding: 12px 8px; border-bottom: 2px solid var(--border); color: var(--primary); font-size: 0.7rem; text-transform: uppercase; }
+        .ammo-table td { padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .ammo-group { background: rgba(255,255,255,0.02); font-weight: 800; color: #555; font-size: 0.65rem; padding: 5px 10px !important; }
+        .t-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 0.7rem; color: #fff; min-width: 25px; text-align: center; }
+        .t6 { background: var(--tier-6); box-shadow: 0 0 8px rgba(255, 77, 77, 0.3); }
+        .t5 { background: var(--tier-5); }
+        .t4 { background: var(--tier-4); }
+        .t3 { background: var(--tier-3); color: #000; }
+        .t2 { background: #7f8c8d; }
+
+        #scrollTopBtn { display: none; position: fixed; bottom: 30px; right: 30px; z-index: 1001; background: var(--primary); color: #000; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 20px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        #map-panel { display: none; margin-top: 10px; }
+        .map-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .map-link { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 25px 15px; text-decoration: none; text-align: center; transition: 0.2s; display: flex; flex-direction: column; justify-content: center; }
+        .map-link:hover { border-color: var(--primary); background: #1c1f22; transform: translateY(-2px); }
+        .map-link .name { color: var(--primary); font-weight: 800; font-size: 0.95rem; display: block; }
+        .map-link .src { color: #666; font-size: 0.65rem; margin-top: 5px; display: block; letter-spacing: 1px; }
+        .map-info-text { text-align: center; margin-top: 20px; font-size: 0.75rem; color: #666; font-style: italic; border-top: 1px dashed var(--border); padding-top: 15px; }
+
+        header { text-align: center; padding: 25px 15px; background: linear-gradient(180deg, #1a1c1e 0%, #0a0b0c 100%); border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border); }
+        h1 { font-weight: 800; text-transform: uppercase; color: #fff; margin: 0; letter-spacing: 1px; font-size: 1.6rem; }
+        .sub-header { color: var(--primary); font-weight: 600; font-size: 1rem; margin-top: 5px; }
+        .sticky-bar { position: sticky; top: 10px; z-index: 1000; background: rgba(20, 22, 24, 0.98); padding: 15px; border-radius: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.5); margin-bottom: 20px; border: 1px solid var(--primary); }
+        .progress-text { display: flex; justify-content: space-between; font-weight: 600; font-size: 0.85rem; margin-bottom: 8px; }
+        .list-container { background: var(--card-bg); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
+        
+        .task-row { display: flex; align-items: flex-start; padding: 12px 18px; border-bottom: 1px solid var(--border); transition: 0.2s; cursor: pointer; border-left: 5px solid transparent; }
+        .task-row:hover { background: #1c1f22; }
+        .task-row.hidden { display: none !important; }
+        .task-row.is-done { border-left: 5px solid var(--accent); background: rgba(46, 204, 113, 0.03); }
+        
+        input[type="checkbox"] { width: 15px; height: 15px; margin-right: 15px; margin-top: 4px; accent-color: var(--accent); cursor: pointer; }
+        .task-info { flex: 1; }
+        .task-title { display: block; font-weight: 700; color: var(--primary); font-size: 0.85rem; margin-bottom: 3px; text-transform: uppercase; }
+        .task-desc { display: block; font-size: 0.88rem; color: #b0b0b0; white-space: pre-wrap; }
+        .hl { color: var(--highlight); font-weight: 600; }
+        
+        input[type="checkbox"]:checked + .task-info .task-title { text-decoration: line-through; color: var(--accent); opacity: 0.5; }
+        input[type="checkbox"]:checked + .task-info .task-desc { opacity: 0.3; }
+
+        footer { text-align: center; padding: 50px 20px 40px; }
+        .footer-wrapper { display: inline-block; border-top: 1px solid var(--border); padding-top: 20px; }
+        .footer-content { display: inline-flex; align-items: center; gap: 12px; background: rgba(245, 166, 35, 0.05); padding: 10px 25px; border-radius: 4px; border: 1px solid var(--border); font-size: 0.75rem; letter-spacing: 1.5px; }
+        .status-dot { width: 8px; height: 8px; background-color: var(--accent); border-radius: 50%; box-shadow: 0 0 10px var(--accent); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 0.3; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0.3; transform: scale(0.9); } }
+        .footer-main { color: #fff; font-weight: 800; }
+        .separator { color: var(--primary); font-weight: 800; }
+        .footer-sub { color: #888; }
+        .footer-fine-print { margin-top: 12px; font-size: 0.65rem; color: #555; text-transform: uppercase; letter-spacing: 2px; }
+        .signature { margin-top: 8px; font-size: 0.8rem; font-weight: 800; color: var(--primary); letter-spacing: 4px; opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+<button onclick="scrollToTop()" id="scrollTopBtn">↑</button>
+
+<div class="container">
+    <header>
+        <h1>ARENA BREAKOUT: INFINITE</h1>
+        <div class="sub-header">Sezon 4 | 3x3 Güvenli Kasa Görev Takip Çizelgesi</div>
+    </header>
+
+    <nav class="main-nav">
+        <button class="nav-btn active" onclick="switchPanel('tasks')">GÖREVLER</button>
+        <button class="nav-btn" onclick="switchPanel('ballistics')">BALİSTİK</button>
+        <button class="nav-btn" onclick="switchPanel('maps')">HARİTALAR</button>
+    </nav>
+
+    <div id="tasks-panel">
+        <div id="route-suggestion" class="ai-suggestion" style="display:none;">
+            <div class="ai-icon">🎯</div>
+            <div class="ai-text">
+                <span id="suggestion-content"></span>
+                <span id="next-task-list" class="ai-next-tasks"></span>
+            </div>
+        </div>
+
+        <div class="sticky-bar">
+            <div class="progress-text"><span>OPERASYON İLERLEMESİ</span><span id="stat-val">0 / 60</span></div>
+            <div class="progress-bg">
+                <div class="progress-fill" id="fill"></div>
+                <div class="progress-percent" id="percent-val">0% TAMAMLANDI</div>
+            </div>
+        </div>
+
+        <div class="search-row">
+            <input type="text" id="taskSearch" placeholder="GÖREV VEYA HARİTA ARA... (Esc: Temizle)" onkeyup="filterTasks(event)">
+            <label class="toggle-box">
+                <input type="checkbox" id="hideDone" onchange="filterTasks()"> BİTENLERİ GİZLE
+            </label>
+        </div>
+
+        <div class="list-container" id="task-list"></div>
+    </div>
+
+    <div id="ballistics-panel">
+        <div class="intel-note">
+            <strong>İSTİHBARAT NOTU:</strong> Tier (T) değeri merminin zırh delme kapasitesini temsil eder. Hedefin zırh seviyesi mermi Tier değerinden yüksekse, mermi seker veya çok düşük hasar verir.
+        </div>
+        <table class="ammo-table">
+            <thead>
+                <tr>
+                    <th>KALİBRE</th>
+                    <th>MÜHİMMAT TİPİ</th>
+                    <th>DELME</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="3" class="ammo-group">5.45x39mm (Sovyet Blok)</td></tr>
+                <tr><td>AK-74 / AK-12</td><td>7N39 Igolnik</td><td><span class="t-badge t6">T6</span></td></tr>
+                <tr><td>AK-74 / AK-12</td><td>BS</td><td><span class="t-badge t5">T5</span></td></tr>
+                <tr><td>AK-74 / AK-12</td><td>BP / BT</td><td><span class="t-badge t4">T4</span></td></tr>
+                <tr><td>AK-74 / AK-12</td><td>PP / PS</td><td><span class="t-badge t3">T3</span></td></tr>
+
+                <tr><td colspan="3" class="ammo-group">5.56x45mm (NATO)</td></tr>
+                <tr><td>M4 / HK / SCAR</td><td>M995</td><td><span class="t-badge t6">T6</span></td></tr>
+                <tr><td>M4 / HK / SCAR</td><td>M855A1</td><td><span class="t-badge t4">T4</span></td></tr>
+                <tr><td>M4 / HK / SCAR</td><td>M855 / SS109</td><td><span class="t-badge t3">T3</span></td></tr>
+
+                <tr><td colspan="3" class="ammo-group">7.62x39mm (AKM Serisi)</td></tr>
+                <tr><td>AKM / SKS</td><td>BP</td><td><span class="t-badge t4">T4</span></td></tr>
+                <tr><td>AKM / SKS</td><td>PS</td><td><span class="t-badge t3">T3</span></td></tr>
+
+                <tr><td colspan="3" class="ammo-group">7.62x51mm (Yüksek Kalibre)</td></tr>
+                <tr><td>FAL / M24 / M14</td><td>M61</td><td><span class="t-badge t6">T6</span></td></tr>
+                <tr><td>FAL / M24 / M14</td><td>M62</td><td><span class="t-badge t5">T5</span></td></tr>
+                <tr><td>FAL / M24 / M14</td><td>M80</td><td><span class="t-badge t4">T4</span></td></tr>
+
+                <tr><td colspan="3" class="ammo-group">9x19mm (SMG & Tabanca)</td></tr>
+                <tr><td>MP5 / Glock</td><td>7N31 (PBP)</td><td><span class="t-badge t4">T4</span></td></tr>
+                <tr><td>MP5 / Glock</td><td>AP 6.3</td><td><span class="t-badge t3">T3</span></td></tr>
+                <tr><td>MP5 / Glock</td><td>DumDum (Et Hasarı)</td><td><span class="t-badge t2">T0</span></td></tr>
+
+                <tr><td colspan="3" class="ammo-group">Diğer Önemli Kalibreler</td></tr>
+                <tr><td>VKS / ASH-12</td><td>PS12B (12.7x55)</td><td><span class="t-badge t6">T6</span></td></tr>
+                <tr><td>P90</td><td>SS190 (5.7x28)</td><td><span class="t-badge t4">T4</span></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="map-panel">
+        <div class="map-grid">
+            <a href="https://maps.tcno.co/abi/farm/" target="_blank" class="map-link"><span class="name">FARM</span><span class="src">TCNO.CO</span></a>
+            <a href="https://maps.tcno.co/abi/valley/" target="_blank" class="map-link"><span class="name">VALLEY</span><span class="src">TCNO.CO</span></a>
+            <a href="https://maps.tcno.co/abi/northridge/" target="_blank" class="map-link"><span class="name">NORTHRIDGE</span><span class="src">TCNO.CO</span></a>
+            <a href="https://maps.tcno.co/abi/armory/" target="_blank" class="map-link"><span class="name">ARMORY</span><span class="src">TCNO.CO</span></a>
+            <a href="https://maps.tcno.co/abi/tvstation/" target="_blank" class="map-link"><span class="name">TV STATION</span><span class="src">TCNO.CO</span></a>
+            <a href="https://maps.tcno.co/abi/airport/" target="_blank" class="map-link"><span class="name">AIRPORT</span><span class="src">TCNO.CO</span></a>
+        </div>
+        <div class="map-info-text">* Harita isimlerine tıkladığınızda etkileşimli sürüm yeni bir sekmede açılacaktır.</div>
+    </div>
+
+    <footer>
+        <div class="footer-wrapper">
+            <div class="footer-content">
+                <span class="status-dot"></span>
+                <span class="footer-main">ABI S4 GÖREV TAKİP SİSTEMİ</span>
+                <span class="separator">//</span>
+                <span class="footer-sub">OPERATÖR TERMİNALİ v1.3.1</span>
+            </div>
+            <div class="footer-fine-print">VERİ AKIŞI AKTİF • <span id="current-date"></span></div>
+            <div class="signature">YcS</div>
+        </div>
+    </footer>
+</div>
+
+<script>
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playFeedback(type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        if (type === 'done') {
+            osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        } else {
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        }
+        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function switchPanel(type) {
+        const tasks = document.getElementById('tasks-panel');
+        const maps = document.getElementById('map-panel');
+        const ballistics = document.getElementById('ballistics-panel');
+        const btns = document.querySelectorAll('.nav-btn');
+        
+        btns.forEach(b => b.classList.remove('active'));
+        tasks.style.display = 'none';
+        maps.style.display = 'none';
+        ballistics.style.display = 'none';
+
+        if(type === 'tasks') { 
+            tasks.style.display = 'block'; 
+            btns[0].classList.add('active'); 
+        } else if(type === 'ballistics') {
+            ballistics.style.display = 'block';
+            btns[1].classList.add('active');
+        } else { 
+            maps.style.display = 'block'; 
+            btns[2].classList.add('active'); 
+        }
+    }
+
+    const scrollBtn = document.getElementById("scrollTopBtn");
+    window.onscroll = function() {
+        if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) scrollBtn.style.display = "block";
+        else scrollBtn.style.display = "none";
+    };
+    function scrollToTop() { window.scrollTo({top: 0, behavior: 'smooth'}); }
+
+    function filterTasks(event) {
+        if (event && event.key === "Escape") { document.getElementById('taskSearch').value = ''; }
+        const input = document.getElementById('taskSearch').value.toUpperCase();
+        const hideDone = document.getElementById('hideDone').checked;
+        const rows = document.querySelectorAll('.task-row');
+        rows.forEach(row => {
+            const text = row.innerText.toUpperCase();
+            const isDone = row.querySelector('input').checked;
+            const matchesSearch = text.indexOf(input) > -1;
+            const shouldHide = hideDone && isDone;
+            if (matchesSearch && !shouldHide) row.classList.remove('hidden');
+            else row.classList.add('hidden');
+        });
+    }
+
+    const taskData = [
+        { n: "Peaceful Obstacle", d: "• <span class='hl'>Farm</span> haritasındaki <span class='hl'>Recycling Station Hut</span> bölgesinde etkileşime gir.\n• <span class='hl'>Farm</span> haritasındaki <span class='hl'>Motel Military Tent</span> bölgesinde etkileşime gir." },
+        { n: "Undercurrent", d: "• <span class='hl'>Farm</span> haritasındaki <span class='hl'>Stable</span>, <span class='hl'>Recycling Station</span> veya <span class='hl'>Motel</span> bölgelerinde toplam <span class='hl'>6 düşman</span> öldür.\n• <span class='hl'>Farm</span> haritasındaki <span class='hl'>Artificial Lake Hut</span> bölgesinde bulunan <span class='hl'>1 adet yağmalanmamış bilgisayarı</span> yağmala." },
+        { n: "The Long Game", d: "• <span class='hl'>Farm</span> haritasındaki <span class='hl'>Wheatfield Farmhouse</span> yatak odası duvarıyla etkileşime gir.\n• <span class='hl'>Farm</span> haritasındaki <span class='hl'>Cemetery Hut</span> yatak odası duvarıyla etkileşime gir.\n• <span class='hl'>Farm</span> haritasındaki bir raidden <span class='hl'>başarıyla çıkış</span> yap." },
+        { n: "Frontline Reconnaissance", d: "• Marketten <span class='hl'>Mountain Spring Water</span> ve <span class='hl'>Biscuit</span> satın al.\n• <span class='hl'>Valley</span> haritasına bu öğelerle gir ve <span class='hl'>Abandoned Shack</span> bölgesine yerleştir." },
+        { n: "Letter From Abyss", d: "• Marketten <span class='hl'>Signal Jammer</span> satın al ve <span class='hl'>Northridge</span> haritasına gir.\n• <span class='hl'>Lakeside Helicopter Point</span> içinde <span class='hl'>45 saniye</span> bekle.\n• Yakındaki <span class='hl'>Access Bridge</span> köprüsünde etkileşime gir." },
+        { n: "Tooth For A Tooth", d: "• <span class='hl'>Valley</span> haritasında <span class='hl'>4 adet Urgent Mission</span> (ünlem simgesi) tamamla." },
+        { n: "Viper's Tongue", d: "• <span class='hl'>Northridge</span> haritasındaki <span class='hl'>Cable Car</span>, <span class='hl'>Parking Lot</span> veya <span class='hl'>Hotel</span> bölgelerinde toplam <span class='hl'>6 düşman</span> öldür." },
+        { n: "Protection And Responsibility", d: "• <span class='hl'>Farm</span> haritasının doğu tarafında <span class='hl'>3 oyuncu</span> öldür.\n• <span class='hl'>Farm</span> haritasındaki <span class='hl'>Villa</span> bölgesinde etkileşime gir." },
+        { n: "Support The Flank", d: "• <span class='hl'>Farm</span> haritasının batı bölgesinde <span class='hl'>3 oyuncu</span> öldür.\n• <span class='hl'>Farm</span> haritasından <span class='hl'>1 kere başarıyla çıkış</span> yap." },
+        { n: "The Bait", d: "• Toplam <span class='hl'>20 adet Miscellaneous Paper Items</span> bağışla.\n• <span class='hl'>Farm</span> haritasındaki <span class='hl'>The House</span> yerleşkesinin 2. katında etkileşime gir." },
+        { n: "Risk Assessment", d: "• <span class='hl'>Northridge</span> haritasında <span class='hl'>susturuculu Marksman Rifle</span> ile <span class='hl'>6 düşman</span> öldür." },
+        { n: "Special Operation", d: "• <span class='hl'>Valley</span> haritasında <span class='hl'>3 oyuncu</span> öldür." },
+        { n: "Black Box", d: "• <span class='hl'>Farm</span> haritasında <span class='hl'>4 adet Urgent Mission</span> görevi yap." },
+        { n: "Damage Control", d: "• <span class='hl'>Farm</span>'da <span class='hl'>2 adet yağmalanmamış Encrypted Safe</span> yağmala.\n• Tek maçta <span class='hl'>350k değerinde ganimetle</span> çıkış yap." },
+        { n: "Good Intentions", d: "• <span class='hl'>Armory</span> haritasının dış bölgesinde <span class='hl'>6 düşman</span> öldür." },
+        { n: "Synergy", d: "• <span class='hl'>Valley</span> haritasında <span class='hl'>Small Factory</span>, <span class='hl'>Noan Courtyard</span> veya <span class='hl'>Supply Camp</span> bölgelerinde <span class='hl'>6 düşman</span> öldür." },
+        { n: "No Defiance", d: "• <span class='hl'>Valley</span> haritasında <span class='hl'>Noan Courtyard</span> ve <span class='hl'>Small Factory</span> bölgelerinde puan topla." },
+        { n: "Respect", d: "• Toplam <span class='hl'>20 adet Miscellaneous Computer Parts</span> bağışla.\n• <span class='hl'>Armory Intelligence Center</span> bölgesinde etkileşime geç." },
+        { n: "Burning Bridges", d: "• <span class='hl'>Valley</span> haritasında herhangi bir zorlukta <span class='hl'>1 maç tamamla</span>." },
+        { n: "Frog In A Well", d: "• Marketten <span class='hl'>1 milyon nakit</span> çek.\n• <span class='hl'>Valley RV Camp</span> bölgesinde <span class='hl'>3 adet unsearched suitcase</span> yağmala." },
+        { n: "Surprise Discovery", d: "• <span class='hl'>Valley Abandoned Shack</span> noklardan çıkış yap.\n• Workbench'te <span class='hl'>5.7x28mm L191</span> mermisi üret." },
+        { n: "Rally", d: "• <span class='hl'>Portable Transceiver</span> ile <span class='hl'>Valley Port</span> bölgesinde <span class='hl'>60 saniye</span> bekle.\n• Aynı bölgede <span class='hl'>6 düşman</span> öldür." },
+        { n: "Abondoned Airport", d: "• <span class='hl'>TV Station Parking Lot</span> puan topla.\n• <span class='hl'>TV Station</span> haritasında <span class='hl'>7 tane unsearched iş çantası</span> yağmala." },
+        { n: "Signal", d: "• <span class='hl'>TV Station</span> haritasında <span class='hl'>AMB-17, T191 veya U191</span> ile <span class='hl'>3 oyuncu</span> öldür." },
+        { n: "Bad Omen", d: "• <span class='hl'>Farm Stable Hut</span> etkileşime gir.\n• <span class='hl'>Farm Motel</span> bölgesinde puan topla." },
+        { n: "Secret Southwest Passage", d: "• <span class='hl'>Rangefinder Binoculars</span> ile <span class='hl'>Airport Ticket Hall</span> etkileşim.\n• <span class='hl'>Airport</span> haritasında <span class='hl'>3 adet araba bagajı</span> aç." },
+        { n: "Building A Stronghold", d: "• <span class='hl'>Airport Fuel Storage</span> veya <span class='hl'>Construction</span> bölgelerinde <span class='hl'>10 düşman</span> öldür.\n• <span class='hl'>Airport</span> haritasında <span class='hl'>3 adet Encrypted Safe</span> yağmala." },
+        { n: "Investigation", d: "• <span class='hl'>KSS2 Kask + Spartan B Zırh + M4A1</span> ile <span class='hl'>8 tane White Wolves</span> öldür." },
+        { n: "Lockdown", d: "• <span class='hl'>Airport</span> haritasında <span class='hl'>10 tane unsearched Biscuit Tin</span> yağmala." },
+        { n: "Close Encounters", d: "• <span class='hl'>Airport</span> haritasında <span class='hl'>4 adet unsearched Small Safe</span> yağmala." },
+        { n: "Ambushed", d: "• <span class='hl'>Airport</span> haritasında <span class='hl'>3 adet Urgent Mission</span> görevi yap." },
+        { n: "Decoy", d: "• <span class='hl'>Airport</span> haritasında <span class='hl'>Exhibition Area</span>, <span class='hl'>Parking Lot</span> ve <span class='hl'>Control Tower</span> etkileşimlerini yap." },
+        { n: "Old Rival", d: "• <span class='hl'>T-171 Cihazı</span> ile <span class='hl'>Airport Military Post</span> etkileşime gir.\n• En az <span class='hl'>2 adet ana silah</span> ile çıkış yap." },
+        { n: "Pincer Movement", d: "• <span class='hl'>Airport</span> haritasında <span class='hl'>15 adet yiyecek/içecek</span> topla.\n• Kutuda toplam <span class='hl'>750k değerinde eşya</span> zulala." },
+        { n: "The Trap", d: "• <span class='hl'>Airport</span> haritasında <span class='hl'>6 adet unsearched dumpster</span> yağmala." },
+        { n: "Frontline Interception", d: "• <span class='hl'>Permission Card</span> ile <span class='hl'>Airport Military Zone</span> etkileşime gir." },
+        { n: "Reckless Advance", d: "• <span class='hl'>Airport Dış Bölge</span> kısmında <span class='hl'>3 oyuncu</span> öldür." },
+        { n: "Race Against Time", d: "• <span class='hl'>Airport</span> haritasından <span class='hl'>7 adet Energy Item</span> ile çıkış yap.\n• <span class='hl'>3 adet mor+ Energy Item</span> bağışla." },
+        { n: "Emergency Measures", d: "• <span class='hl'>Airport</span> haritasında <span class='hl'>15 adet medikal eşya</span> çıkar." },
+        { n: "Upwind", d: "• <span class='hl'>Airport</span> haritasında <span class='hl'>el bombasıyla 6 düşman</span> öldür.\n• <span class='hl'>Helicopter Extraction</span> noktasından çıkış yap." },
+        { n: "Breakout", d: "• <span class='hl'>Airport Control Area</span>'da <span class='hl'>1 oyuncu</span> öldür.\n• <span class='hl'>Central Elevator</span> asansöründen çıkış yap." },
+        { n: "Next Battlefield", d: "• Toplamda <span class='hl'>3 milyon ganimet</span> ile çıkış yap.\n• <span class='hl'>3 adet Altın (Sarı) eşya</span> bağışla." },
+        { n: "Mission Failed", d: "• <span class='hl'>TV Station</span> haritasından <span class='hl'>15 adet mor+ eşya</span> çıkar.\n• <span class='hl'>Main Entrance</span> çıkış yap." },
+        { n: "Edelweiss's Past", d: "• <span class='hl'>AKM + SH18 + 6B23</span> ile <span class='hl'>Radar, Frontier ve Supply Camp</span>'ta 30sn bekle." },
+        { n: "Strage Things At The Farm", d: "• <span class='hl'>Farm Lockdown/Forbidden</span> modunda <span class='hl'>2 Boss</span> öldür." },
+        { n: "Quick On Your Feet", d: "• <span class='hl'>ML Lever-Action Rifle</span> ile <span class='hl'>5 düşman</span> öldür." },
+        { n: "Ghost Of The Past", d: "• Çeşitli haritalarda toplam <span class='hl'>11 adet Air Drop</span> konteyneri yağmala." },
+        { n: "Edelweiss's Return", d: "• <span class='hl'>Valley Lockdown</span> modunda <span class='hl'>bacaklar kırıkken 8 düşman</span> öldür." },
+        { n: "Team Annihilation", d: "• <span class='hl'>TV Station</span> haritasında <span class='hl'>7 medikal konteyner</span> yağmala.\n• <span class='hl'>Elevator</span> çıkışından çıkış yap." },
+        { n: "Additional Troops", d: "• <span class='hl'>Armory</span> haritasında kutuya <span class='hl'>750k item</span> koy.\n• <span class='hl'>Underground Canal</span> çıkış yap." },
+        { n: "Crow Feather", d: "• <span class='hl'>Northridge</span>'in 5 farklı bölgesinde <span class='hl'>birer adet kasa</span> yağmala." },
+        { n: "Counterattack", d: "• <span class='hl'>TV Station</span> haritasında <span class='hl'>M84 Flashbang</span> ile <span class='hl'>6 kör etme</span> yap.\n• <span class='hl'>3 maç tamamla</span>." },
+        { n: "By Name", d: "• <span class='hl'>TV Station</span>'daki <span class='hl'>3 farklı çıkış noktasını</span> en az birer kez kullan." },
+        { n: "Predator", d: "• <span class='hl'>TV Station veya Airport</span> çıkış yap.\n• <span class='hl'>5 adet yağmalanmamış büyük kasa</span> yağmala." },
+        { n: "Heavy Punch", d: "• <span class='hl'>Airport</span> haritasında <span class='hl'>8 adet Blackgold Scav</span> öldür." },
+        { n: "Golden Opportunity", d: "• <span class='hl'>TV Station Central Control</span> puan topla.\n• <span class='hl'>The Vault</span> bölgesinde etkileşime gir." },
+        { n: "Window Of Opportunity", d: "• <span class='hl'>Airport</span> haritasından <span class='hl'>15 adet altın/kırmızı eşya</span> çıkar." },
+        { n: "Deja Vu", d: "• <span class='hl'>Farm</span> haritasında <span class='hl'>15 dakika hayatta kal</span>.\n• <span class='hl'>Cemetery</span> bölgesinde etkileşime gir." },
+        { n: "The Final Showdown", d: "• <span class='hl'>Airport</span> haritasındaki <span class='hl'>4 stratejik odada</span> etkileşime geç." },
+        { n: "Waving Flag", d: "• <span class='hl'>Airport Control Tower</span> bölgesinde <span class='hl'>10 düşman</span> öldür.\n• <span class='hl'>2 adet Encrypted Safe</span> yağmala." }
+    ];
+
+    const listEl = document.getElementById('task-list');
+    const fillEl = document.getElementById('fill');
+    const statEl = document.getElementById('stat-val');
+    const percentEl = document.getElementById('percent-val');
+    let completedTasks = JSON.parse(localStorage.getItem('abi_tasks')) || [];
+
+    function updateSuggestion() {
+        const activeObjectives = [];
+        for (let i = 0; i < taskData.length; i++) {
+            if (!completedTasks.includes(i)) {
+                activeObjectives.push(taskData[i]);
+                if (activeObjectives.length === 3) break;
+            }
+        }
+        const panel = document.getElementById('route-suggestion');
+        const content = document.getElementById('suggestion-content');
+        const nextList = document.getElementById('next-task-list');
+        if (activeObjectives.length > 0) {
+            panel.style.display = 'flex';
+            const mapRegex = /Farm|Valley|Northridge|Armory|TV Station|Airport/i;
+            const primaryMapMatch = activeObjectives[0].d.match(mapRegex);
+            const primaryMap = primaryMapMatch ? primaryMapMatch[0] : "Belirsiz Bölge";
+            content.innerHTML = `<strong>AKTİF OPERASYON:</strong> ${primaryMap} bölgesine sızma yapmalısın.`;
+            nextList.innerHTML = `Sıradaki Hedefler: ${activeObjectives.map(t => t.n).join(" → ")}`;
+        } else {
+            panel.style.display = 'none';
+        }
+    }
+
+    function refresh(e) {
+        const checkedIndexes = [];
+        const rows = document.querySelectorAll('.task-row');
+        if (e && e.target) { playFeedback(e.target.checked ? 'done' : 'undone'); }
+        rows.forEach((row, index) => {
+            const cb = row.querySelector('input');
+            if(cb.checked) { row.classList.add('is-done'); checkedIndexes.push(index); } 
+            else { row.classList.remove('is-done'); }
+        });
+        completedTasks = checkedIndexes;
+        const total = taskData.length;
+        const percentage = Math.round((checkedIndexes.length / total) * 100);
+        fillEl.style.width = percentage + '%';
+        statEl.innerText = `${checkedIndexes.length} / ${total}`;
+        percentEl.innerText = `%${percentage} TAMAMLANDI`;
+        localStorage.setItem('abi_tasks', JSON.stringify(checkedIndexes));
+        updateSuggestion();
+        filterTasks();
+    }
+
+    taskData.forEach((t, i) => {
+        const row = document.createElement('label');
+        row.className = 'task-row';
+        const isChecked = completedTasks.includes(i);
+        if(isChecked) row.classList.add('is-done');
+        row.innerHTML = `<input type="checkbox" ${isChecked ? 'checked' : ''}><div class="task-info"><span class="task-title">${i + 1}. ${t.n}</span><span class="task-desc">${t.d}</span></div>`;
+        row.querySelector('input').addEventListener('change', refresh);
+        listEl.appendChild(row);
+    });
+
+    refresh();
+    document.getElementById('current-date').innerText = new Date().toLocaleDateString('tr-TR');
+</script>
+</body>
+</html>
