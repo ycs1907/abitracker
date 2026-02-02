@@ -58,20 +58,21 @@ async function getNews() {
 
 // GÜNCELLENEN: Hem Cron hem de Kullanıcı dostu yapı
 app.get('/api/news-json', async (req, res) => {
+    // BU SATIR ÇOK ÖNEMLİ: Vercel'in bu veriyi hafızasında saklamasını sağlar
+    res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate');
+
     const authHeader = req.headers['authorization'];
     
-    // Vercel Cron tetiklendiğinde terminale (logs) not düşer
+    // Vercel Cron veya cPanel Cron tetiklendiğinde log düşer
     if (authHeader === `Bearer ${process.env.CRON_SECRET}`) {
-        console.log("Vercel Cron başarılı bir şekilde tetiklendi.");
+        console.log("Cron başarılı bir şekilde tetiklendi.");
     }
 
     try {
-        // Güvenlik kilidini esnettik: Artık hem Cron hem tarayıcı buraya girebilir.
+        // Artık veriyi getNews içinden alıyoruz
         const news = await getNews();
         
-        // ÖNEMLİ: Eğer ön yüzün (index.html) sadece "news" listesini bekliyorsa 
-        // direkt "res.json(news)" kullanmalısın. 
-        // Ama daha düzenli olsun dersen aşağıdaki yapıyı kullan:
+        // Tarayıcıya hazır (çevrilmiş) JSON gönderiyoruz
         res.json(news); 
 
     } catch (error) {
@@ -86,4 +87,5 @@ app.get('/', (req, res) => {
 });
 
 module.exports = app;
+
 
