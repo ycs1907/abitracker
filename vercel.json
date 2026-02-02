@@ -3,5 +3,11 @@
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.js" },
     { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/news-json",
+      "schedule": "*/10 * * * *"
+    }
   ]
 }
