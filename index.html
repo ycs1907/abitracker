@@ -134,6 +134,99 @@
         .footer-sub { color: #888; }
         .footer-fine-print { margin-top: 12px; font-size: 0.65rem; color: #555; text-transform: uppercase; letter-spacing: 2px; }
         .signature { margin-top: 8px; font-size: 0.8rem; font-weight: 800; color: var(--primary); letter-spacing: 4px; opacity: 0.8; }
+        /* Mobil Uyumluluk Düzenlemeleri */
+@media (max-width: 600px) {
+    body {
+        padding: 10px; /* Kenar boşluklarını daralt */
+    }
+
+    .container {
+        width: 100%;
+    }
+
+    /* Başlık ve Alt Başlık */
+    h1 {
+        font-size: 1.2rem;
+    }
+    .sub-header {
+        font-size: 0.8rem;
+    }
+
+    /* Menü butonlarını 2x2 yap veya kaydırılabilir yap */
+    .main-nav {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
+    }
+    .nav-btn {
+        padding: 8px 5px;
+        font-size: 0.65rem;
+    }
+
+    /* Arama çubuğu ve Filtre */
+    .search-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .toggle-box {
+        justify-content: center;
+        padding: 5px;
+        background: var(--card-bg);
+        border-radius: 5px;
+    }
+
+    /* Haberler Bölümü */
+    .news-widget {
+        flex-direction: column; /* Görsel ve listeyi üst üste al */
+        height: auto;
+    }
+    .news-img-box {
+        height: 180px; /* Mobilde görsel yüksekliğini sabitle */
+    }
+    .news-list-box {
+        border-left: none;
+        border-top: 1px solid var(--border);
+        height: 200px;
+    }
+
+    /* Harita Izgarası */
+    .map-grid {
+        grid-template-columns: 1fr; /* Haritaları tek sütun yap */
+    }
+
+    /* Balistik Tablosu */
+    .ammo-table {
+        font-size: 0.75rem;
+    }
+    .ammo-table th, .ammo-table td {
+        padding: 8px 4px;
+    }
+
+    /* Görev Listesi */
+    .task-row {
+        padding: 10px;
+    }
+    .task-title {
+        font-size: 0.75rem;
+    }
+    .task-desc {
+        font-size: 0.75rem;
+    }
+
+    /* Sticky Bar (İlerleme çubuğu) mobilde çok yer kaplamasın */
+    .sticky-bar {
+        padding: 10px;
+        top: 5px;
+    }
+    
+    /* Scroll butonu mobilde parmak altına gelmesin */
+    #scrollTopBtn {
+        bottom: 15px;
+        right: 15px;
+        width: 40px;
+        height: 40px;
+    }
+}
     </style>
 </head>
 <body>
@@ -428,4 +521,5 @@ function showNewsDetail(index) {
 </script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body>
+
 </html>
