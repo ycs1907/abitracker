@@ -56,15 +56,35 @@ async function getNews() {
     }
 }
 
-// Yeni Eklenen: Haberleri JSON olarak veren endpoint
+// GÜNCELLENEN: Haberleri JSON olarak veren ve otomatik güncellenen yapı
 app.get('/api/news-json', async (req, res) => {
-    const news = await getNews();
-    res.json(news);
+    const authHeader = req.headers['authorization'];
+    
+    // Vercel'den gelen gizli şifreyi kontrol eder (Environment Variables'daki CRON_SECRET)
+    // Eğer şifre eşleşmezse (yani dışarıdan biri girmeye çalışırsa) 401 hatası verir.
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return res.status(401).json({ 
+            success: false, 
+            message: 'Yetkisiz erişim. Sadece sistem güncelleyebilir.' 
+        });
+    }
+
+    try {
+        console.log("Sistem otomatik tetiklendi, haberler yenileniyor...");
+        const news = await getNews();
+        res.json({
+            success: true,
+            message: "Haberler başarıyla güncellendi.",
+            data: news
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
-// Yeni Eklenen: Ana sayfa olarak index.html'i açar
+// Değişmeyen kısım: Ana sayfa
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, '..', 'index.html')); 
 });
 
 module.exports = app;
