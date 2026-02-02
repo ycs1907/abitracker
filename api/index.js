@@ -56,29 +56,27 @@ async function getNews() {
     }
 }
 
-// GÜNCELLENEN: Haberleri JSON olarak veren ve otomatik güncellenen yapı
+// GÜNCELLENEN: Hem Cron hem de Kullanıcı dostu yapı
 app.get('/api/news-json', async (req, res) => {
     const authHeader = req.headers['authorization'];
     
-    // Vercel'den gelen gizli şifreyi kontrol eder (Environment Variables'daki CRON_SECRET)
-    // Eğer şifre eşleşmezse (yani dışarıdan biri girmeye çalışırsa) 401 hatası verir.
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ 
-            success: false, 
-            message: 'Yetkisiz erişim. Sadece sistem güncelleyebilir.' 
-        });
+    // Vercel Cron tetiklendiğinde terminale (logs) not düşer
+    if (authHeader === `Bearer ${process.env.CRON_SECRET}`) {
+        console.log("Vercel Cron başarılı bir şekilde tetiklendi.");
     }
 
     try {
-        console.log("Sistem otomatik tetiklendi, haberler yenileniyor...");
+        // Güvenlik kilidini esnettik: Artık hem Cron hem tarayıcı buraya girebilir.
         const news = await getNews();
-        res.json({
-            success: true,
-            message: "Haberler başarıyla güncellendi.",
-            data: news
-        });
+        
+        // ÖNEMLİ: Eğer ön yüzün (index.html) sadece "news" listesini bekliyorsa 
+        // direkt "res.json(news)" kullanmalısın. 
+        // Ama daha düzenli olsun dersen aşağıdaki yapıyı kullan:
+        res.json(news); 
+
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error("Haber çekme hatası:", error.message);
+        res.status(500).json({ success: false, error: "Haberler şu an alınamadı." });
     }
 });
 
@@ -88,3 +86,4 @@ app.get('/', (req, res) => {
 });
 
 module.exports = app;
+
