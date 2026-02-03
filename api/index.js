@@ -3,9 +3,6 @@ const axios = require('axios');
 const { translate } = require('google-translate-api-x');
 const path = require('path');
 const app = express();
-const crypto = require('crypto');
-const newsTranslateCache = new Map();
-
 
 // Statik dosyaları (tasks.js, ammo.js, maps.js) olduğu gibi sunar
 app.use(express.static('.'));
@@ -14,55 +11,22 @@ let cachedNews = null;
 let lastFetchTime = 0;
 const CACHE_DURATION = 10 * 60 * 1000;
 
-function hashText(text) {
-    return crypto.createHash('sha1').update(text).digest('hex');
-}
-
 async function processNews(newsList) {
-    return Promise.all(newsList.map(async (item) => {
-        const rawContent =
-            item.content_part || item.content_desc || "İçerik mevcut değil.";
-
+    return await Promise.all(newsList.map(async (item) => {
         try {
-            const signature = hashText(item.title + rawContent);
-
-            if (newsTranslateCache.has(signature)) {
-                const cached = newsTranslateCache.get(signature);
-                return {
-                    ...item,
-                    title: cached.title_tr,
-                    content_tr: cached.content_tr
-                };
-            }
-
-            const [titleRes, contentRes] = await Promise.all([
-                translate(item.title, { to: 'tr' }),
-                translate(rawContent, { to: 'tr' })
-            ]);
-
-            const translated = {
-                title_tr: titleRes.text,
-                content_tr: contentRes.text
-            };
-
-            newsTranslateCache.set(signature, translated);
-
+            const titleTr = await translate(item.title, { to: 'tr' });
+            const rawContent = item.content_part || item.content_desc || "İçerik mevcut değil.";
+            const contentTr = await translate(rawContent, { to: 'tr' });
             return {
                 ...item,
-                title: translated.title_tr,
-                content_tr: translated.content_tr
+                title: titleTr.text,
+                content_tr: contentTr.text
             };
         } catch (err) {
-            console.error("processNews hata:", err.message);
-            return {
-                ...item,
-                title: item.title,
-                content_tr: rawContent
-            };
+            return { ...item, content_tr: item.content_part };
         }
     }));
 }
-
 
 async function getNews() {
     const now = Date.now();
@@ -123,9 +87,4 @@ app.get('/', (req, res) => {
 });
 
 module.exports = app;
-
-
-
-
-
 
