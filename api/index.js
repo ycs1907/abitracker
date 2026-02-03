@@ -3,6 +3,8 @@ const axios = require('axios');
 const { translate } = require('google-translate-api-x');
 const path = require('path');
 const app = express();
+const crypto = require('crypto');
+
 
 // Statik dosyaları (tasks.js, ammo.js, maps.js) olduğu gibi sunar
 app.use(express.static('.'));
@@ -119,6 +121,7 @@ app.get('/', (req, res) => {
 });
 
 module.exports = app;
+
 
 
 
