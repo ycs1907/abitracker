@@ -12,21 +12,29 @@ let lastFetchTime = 0;
 const CACHE_DURATION = 10 * 60 * 1000;
 
 async function processNews(newsList) {
-    return await Promise.all(newsList.map(async (item) => {
+    return Promise.all(newsList.map(async (item) => {
         try {
-            const titleTr = await translate(item.title, { to: 'tr' });
             const rawContent = item.content_part || item.content_desc || "İçerik mevcut değil.";
-            const contentTr = await translate(rawContent, { to: 'tr' });
+
+            const [titleRes, contentRes] = await Promise.all([
+                translate(item.title, { to: 'tr' }),
+                translate(rawContent, { to: 'tr' })
+            ]);
+
             return {
                 ...item,
-                title: titleTr.text,
-                content_tr: contentTr.text
+                title: titleRes.text,
+                content_tr: contentRes.text
             };
-        } catch (err) {
-            return { ...item, content_tr: item.content_part };
+        } catch {
+            return {
+                ...item,
+                content_tr: item.content_part || item.content_desc
+            };
         }
     }));
 }
+
 
 async function getNews() {
     const now = Date.now();
@@ -87,5 +95,6 @@ app.get('/', (req, res) => {
 });
 
 module.exports = app;
+
 
 
