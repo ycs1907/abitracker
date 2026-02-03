@@ -13,27 +13,51 @@ const CACHE_DURATION = 10 * 60 * 1000;
 
 async function processNews(newsList) {
     return Promise.all(newsList.map(async (item) => {
-        try {
-            const rawContent = item.content_part || item.content_desc || "İçerik mevcut değil.";
+        const rawContent =
+            item.content_part || item.content_desc || "İçerik mevcut değil.";
 
+        // Haberin imzası (başlık + içerik)
+        const signature = hashText(item.title + rawContent);
+
+        // ✅ Cache HIT
+        if (newsTranslateCache.has(signature)) {
+            const cached = newsTranslateCache.get(signature);
+            return {
+                ...item,
+                title: cached.title_tr,
+                content_tr: cached.content_tr
+            };
+        }
+
+        // ❌ Cache MISS → sadece bu haber çevrilir
+        try {
             const [titleRes, contentRes] = await Promise.all([
                 translate(item.title, { to: 'tr' }),
                 translate(rawContent, { to: 'tr' })
             ]);
 
-            return {
-                ...item,
-                title: titleRes.text,
+            const translated = {
+                title_tr: titleRes.text,
                 content_tr: contentRes.text
             };
-        } catch {
+
+            // Cache’e yaz
+            newsTranslateCache.set(signature, translated);
+
             return {
                 ...item,
-                content_tr: item.content_part || item.content_desc
+                title: translated.title_tr,
+                content_tr: translated.content_tr
+            };
+        } catch (err) {
+            return {
+                ...item,
+                content_tr: rawContent
             };
         }
     }));
 }
+
 
 
 async function getNews() {
@@ -95,6 +119,7 @@ app.get('/', (req, res) => {
 });
 
 module.exports = app;
+
 
 
 
